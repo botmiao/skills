@@ -61,6 +61,9 @@ if [[ ${#TARGET_DIRS[@]} -eq 0 ]]; then
   if [[ -d "${HOME}/.cursor" ]]; then
     TARGET_DIRS+=("${HOME}/.cursor/skills")
   fi
+  if [[ -d "${HOME}/.codex" ]]; then
+    TARGET_DIRS+=("${HOME}/.codex/skills")
+  fi
 fi
 
 install_skill_dir() {

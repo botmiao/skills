@@ -10,16 +10,17 @@ Run these from the repository root (`/home/antigravity/botmiao/skills`):
 |---|---|---|
 | Validate skills and links | `node scripts/validate-skills.mjs` | Exits `0` and prints `PASS:` |
 | Dry-run installer | `bash scripts/install.sh --dry-run` | Exits `0` |
-| Install into active environment | `bash scripts/install.sh` | Exits `0` and links the 4 skills into `~/.gemini/skills` and `~/.agents/skills` |
+| Install into active environment | `bash scripts/install.sh` | Exits `0` and links the 5 skills into `~/.gemini/skills` and `~/.agents/skills` |
 
 ## Architecture and module boundaries
 
 - [`skills/paseo-orchestrate/`](skills/paseo-orchestrate/SKILL.md): Paseo multi-agent orchestration skill. Invokes the `paseo` skill, matches tasks to saved Agent Profiles via their `When to use` (`notes`) field (or explicit user choice), and runs workers inside the same workspace by default with strict file write boundaries.
+- [`skills/t3code-orchestrate/`](skills/t3code-orchestrate/SKILL.md): T3Code multi-agent orchestration skill. Drives T3Code's built-in `t3-code` Orchestrator V2 MCP tools across three progressive tiers: Tier 1 shared-workspace 4-stage pipeline (`delegate_task`), Tier 2 isolated Git worktrees (`t3_thread_launch` with `workspaceStrategy`), and Tier 3 cross-device Linked Environments (`t3_environment_links` and explicit `environmentId` + Git branch sync across Windows, macOS, and Linux).
 - [`skills/agy-teamwork/`](skills/agy-teamwork/SKILL.md): Antigravity multi-agent orchestration skill. Frames a structured Milestone Contract with shared-workspace file isolation and runnable verification gates before dispatching to the `teamwork` sentinel (`invoke_subagent(TypeName="teamwork")`).
 - [`skills/doc-review/`](skills/doc-review/SKILL.md): Holistic code-vs-documentation review skill. Audits Database, API, Technical, `README.md`, and Requirement (PRD/Spec) documents against the codebase, repairs factual drift, surfaces requirement gaps for human confirmation, and chains `agents-maintain`.
 - [`skills/agents-maintain/`](skills/agents-maintain/SKILL.md): `AGENTS.md` governance and archiving skill. Audits every rule and pitfall in `AGENTS.md` against current code, moves resolved historical pitfalls into `docs/archive/agents-history.md`, and hardens recurring traps into types, lints, or tests.
 - [`scripts/validate-skills.mjs`](scripts/validate-skills.mjs): structural validator for YAML frontmatter, markdown links, and `/unslop` formatting rules.
-- [`scripts/install.sh`](scripts/install.sh): idempotent installer for Antigravity, Paseo, Claude Code, Cursor, and Codex skill directories.
+- [`scripts/install.sh`](scripts/install.sh): idempotent installer for Antigravity, Paseo, T3Code, Claude Code, Cursor, and Codex skill directories.
 
 ## Skill authoring conventions
 
