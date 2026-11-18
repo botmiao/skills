@@ -10,20 +10,36 @@ Coordinate multiple coding agents in T3Code using the built-in `t3-code` Orchest
 
 Trigger via `/t3code-orchestrate <task>`, `$t3code-orchestrate <task>` (Codex skill picker), or natural-language multi-agent requests. No upfront setup or manual agent naming is required.
 
-### Optional `/t3code-orchestrate init` (save default role routing)
-When invoked as `/t3code-orchestrate init` (or `$t3code-orchestrate init`):
-1. Call `orchestrator_capabilities` to list connected `providerInstances` and `models`.
-2. Call `t3_environment_links` (if available) to list linked machines (`environmentId`, `label`, `status`, `access`).
-3. Present a concise summary of available providers, models, and machines, ask the user once for their preferred defaults per role (`Backend`, `Frontend`, `Reviewer`, `Tester`, plus OS target hosts if linked), and write a `## T3Code team routing` markdown table to either `~/.agents/t3code-team.md` (user-wide) or the repository's `AGENTS.md` (project-scoped), per user choice. Stop after saving.
+### Interactive per-role model selection (`/t3code-orchestrate init` or explicit model switch)
+Trigger interactive model selection **only** when invoked as `/t3code-orchestrate init`, `$t3code-orchestrate init`, or when the user explicitly asks to choose or switch models (for example, `"选模型"`, `"换模型"`, `"choose models"`, or `"configure models"`). Never interrupt normal task runs with model-picker prompts.
 
-### Role-to-provider/model resolution on normal runs
+When interactive selection is triggered:
+1. Call `orchestrator_capabilities` to list connected `providerInstances`, advertised `models`, and any `omittedModels` counts. Call `t3_environment_links` (if available) to list linked machines (`environmentId`, `label`, `status`, `access`).
+2. **Print the full catalog in chat first.** Before calling any structured question tool (`AskUserQuestion`, `request_user_input`, `ask_user_question`), output a concise summary of all available `providerInstanceId` (`driverKind`) entries, their visible models, any `omittedModels` count (noting hidden models are searchable), and linked machines so the user is never limited to the 3-4 options shown inside a question card.
+3. **Ask per role individually (never fixed team bundles).** Do **not** group roles into rigid preset bundles. Ask **one separate question per role** (`Backend`, `Frontend`, `Reviewer`, `Tester`). On every role question, construct the options as:
+   - **1-2 top recommended `provider/model` choices** from the active catalog (for `Reviewer`, recommend a different provider/model family from `Backend`/`Frontend` when available).
+   - **`Auto / Inherit`** (automatically match an available capability-appropriate model or inherit the parent thread).
+   - **Final option (always present): `Custom model / Search hidden models (+ optional Fallback)`** so the user can specify any `provider/model`, search `omittedModels`, pass `target.options` (such as `reasoningEffort: "low" | "medium" | "high" | "xhigh"`), or define a custom `Primary -> Fallback` pair (users may also type directly into the UI's write-in field).
+4. **Resolve custom or hidden models and optional `Fallback` targets:**
+   - If the user picks the custom option or enters a model keyword/slug not visible in the truncated top list, call `orchestrator_capabilities(search: "<keyword>")` to verify or locate hidden catalog models (`omittedModels`) and confirm the exact `providerInstanceId` and `model` slug.
+   - Ask one concise follow-up (unless already specified inline) offering to set an optional **`Fallback Target`** for roles (for example, `Primary: codex/gpt-5.4 -> Fallback: claude/claude-sonnet-4-6`, defaulting to `auto/inherit` if left unset) and where to save (`~/.agents/t3code-team.md` user-wide vs repository `AGENTS.md` project-scoped, plus target OS host if linked).
+5. **Persist the routing + fallback table:** Write or update a `## T3Code team routing` markdown table with columns:
+   `| Role | Primary Target | Fallback Target | Target Options | Host / Notes |`
+   (where targets use `<providerInstanceId-or-driverKind>/<model>`, `auto`, or `inherit`). Stop after saving when invoked as `init`; proceed with task execution if triggered mid-task via an explicit model-switch request.
+
+### Role-to-provider/model resolution and Fallback chain on normal runs
 Before dispatching workers:
 1. If the `in-your-own-words` skill is available, state the user's goal, problem, and expected deliverables concisely. If the codebase area is unfamiliar and the `how` skill is available, inspect affected entry points and test commands before partitioning work.
 2. Call `orchestrator_capabilities` once to inspect the parent's inherited provider/model, permission ceilings (`runtimeMode`, `interactionMode`), and available `providerInstances` and `models`.
-3. Select each role's `target` (`providerInstanceId`, `driverKind`, `model`, and `environmentId` when cross-device) in this priority order:
-   - **Explicit user override first.** Honor any provider, model, tier, or target machine named in the prompt.
-   - **Saved routing table second.** Check the repository's `AGENTS.md` and `~/.agents/t3code-team.md` (if present) for a `T3Code team routing` table and apply matching role preferences that are currently available.
-   - **Capability-based auto-selection third.** Pick strong coding models for `Backend` and `Frontend` (or inherit the parent), prefer a **different provider/model family** for `Independent Review Agent` when multiple providers (such as Claude and Codex) are available, and select a multimodal/browser/device-capable model on the target OS for `Integration & Device Test Agent`. Tell the user which mapping was chosen.
+3. Resolve each role's `target` (`providerInstanceId`, `driverKind`, `model`, `options`, and `environmentId` when cross-device) along this **4-step priority and fallback chain**:
+   - **Step 1: Explicit prompt override.** Honor any provider, model, `options`, tier, or target machine named in the current prompt.
+   - **Step 2: Saved `Primary Target`.** Check the repository's `AGENTS.md` first, then `~/.agents/t3code-team.md`, for a `## T3Code team routing` table. Before treating a saved custom model slug as unavailable when `omittedModels > 0`, verify it with `orchestrator_capabilities(search: "<saved-model>")`.
+   - **Step 3: Saved `Fallback Target`.** If the saved `Primary Target` is missing or unavailable, evaluate the role's configured `Fallback Target` (again checking `orchestrator_capabilities(search: ...)` when `omittedModels > 0`).
+   - **Step 4: `Auto / Inherit` fallback.** Pick strong available coding models for `Backend` and `Frontend` (or omit `target` to inherit the parent thread), prefer a **different provider/model family** for `Independent Review Agent` when multiple providers are connected, and select a multimodal/browser/device-capable model on the target OS for `Integration & Device Test Agent`. Tell the user the active mapping before fan-out.
+4. **Runtime fallback and automatic step-down retry:**
+   - T3Code's `delegate_task` and `t3_thread_launch` fail fast when an explicit target cannot run (`provider_unavailable`, `model_unavailable`, provider CLI logged out/outdated, or quota/rate-limit failure).
+   - If a dispatch fails for any provider/model availability or rate-limit reason, automatically step down to the next target in that role's chain (`Primary -> Fallback -> Auto / Inherit`) and retry once per step with a fresh `clientRequestId`. (In Tier 3, never fall back an OS-specific build/test onto the wrong OS host; only step down across providers/models available on a valid target OS machine.)
+   - Always announce any fallback transition in chat and in the final report (`[Fallback] <Role>: <failed-target> (<reason>) -> <active-target>`).
 
 ## 2. Select the execution tier (auto-detect + explicit override)
 
@@ -128,6 +144,6 @@ Use Tier 3 when work spans OS-specific toolchains (such as Windows `.NET` / MSVC
 
 If the `no-comments` and `unslop` skills are available, apply them before presenting the final report. Include:
 1. **Execution tier & topology:** Selected tier (`Tier 1`, `Tier 2`, or `Tier 3`) and why it was chosen.
-2. **Role-to-target mapping:** Each active role, its host environment (`local` or linked `label` / `environmentId`), `provider/model`, and thread URI (`t3-thread://v2/...` when applicable).
+2. **Role-to-target mapping:** Each active role, its host environment (`local` or linked `label` / `environmentId`), active `provider/model` (plus any `Primary -> Fallback -> Auto/Inherit` transitions triggered), and thread URI (`t3-thread://v2/...` when applicable).
 3. **Changes & branches:** Files modified per role (plus worktree or cross-device sync branches merged and final commit SHAs).
 4. **Verification & review results:** Unified build/unit-test outputs, independent review findings resolved, and browser preview / native OS / device test outcomes.
