@@ -1,6 +1,6 @@
 # botmiao/skills
 
-Personal workflow skills for multi-agent orchestration (**Paseo**, **T3Code**, and **Antigravity Teamwork**) and holistic **code-documentation alignment** (including `AGENTS.md` pitfall archiving). External skills (such as `paseo` and `pstack`) are referenced softly via prompt instructions so this repository stays lightweight and self-contained.
+Personal workflow skills for multi-agent orchestration (**Paseo**, **T3Code**, and **Antigravity Teamwork**), holistic **code-documentation alignment** (including `AGENTS.md` pitfall archiving), and **version release & cross-device Git sync**. External skills (such as `paseo` and `pstack`) are referenced softly via prompt instructions so this repository stays lightweight and self-contained.
 
 ## Quickstart
 
@@ -22,7 +22,7 @@ bash scripts/install.sh
 Expected validation output:
 
 ```text
-PASS: Validated 5 skills (agents-maintain, agy-teamwork, doc-review, paseo-orchestrate, t3code-orchestrate) and 7 markdown files.
+PASS: Validated 6 skills (agents-maintain, agy-teamwork, doc-review, paseo-orchestrate, release-flow, t3code-orchestrate) and 8 markdown files.
 ```
 
 ## Skill catalog
@@ -34,6 +34,7 @@ PASS: Validated 5 skills (agents-maintain, agy-teamwork, doc-review, paseo-orche
 | [`agy-teamwork`](skills/agy-teamwork/SKILL.md) | `/agy-teamwork`, "use teamwork to orchestrate" | Builds a structured **Milestone Contract** (ordered milestones, `Workspace: "inherit"` file ownership boundaries, and runnable pass/fail verification commands) before dispatching work to Antigravity's `teamwork` sentinel (`invoke_subagent(TypeName="teamwork")`) or `self`/`research` subagents. |
 | [`doc-review`](skills/doc-review/SKILL.md) | `/doc-review`, "review all docs against code" | Audits all repository documentation against the current codebase across five buckets: **Database docs**, **API docs**, **Technical/Architecture docs**, **`README.md`**, and **Requirement/PRD docs**. Updates factual docs directly from source truth, surfaces PRD-vs-code discrepancies in a decision table for human confirmation, and chains `agents-maintain`. |
 | [`agents-maintain`](skills/agents-maintain/SKILL.md) | `/agents-maintain`, "clean up AGENTS.md" | Audits every rule and historical pitfall in `AGENTS.md` (and `CLAUDE.md`) against current code into four states: `ACTIVE` (keep and tighten), `RESOLVED -> ARCHIVE` (move resolved historical pitfalls into `docs/archive/agents-history.md`), `HARDEN -> ARCHIVE` (convert prose warnings into types/lints/tests, then archive), and `OBSOLETE -> DELETE`. |
+| [`release-flow`](skills/release-flow/SKILL.md) | `/release-flow`, `release-flow mode1\|mode2\|mode3`, "版本发布", "同步代码换设备" | General-purpose SemVer release and Git sync workflow across three modes: **Mode 1 (`mode1`)** local temporary test release (no remote push/tags), **Mode 2 (`mode2`)** cross-device code sync without version bumps or tags, and **Mode 3 (`mode3`)** formal remote release with SemVer bump, pre-release verification gates, `CHANGELOG.md` update, CI/CD release-script detection (and interactive scaffolding if missing), annotated tag, and targeted push. |
 
 ## Project structure
 
@@ -42,6 +43,7 @@ PASS: Validated 5 skills (agents-maintain, agy-teamwork, doc-review, paseo-orche
 - [`skills/agy-teamwork/SKILL.md`](skills/agy-teamwork/SKILL.md): Antigravity `teamwork` orchestration skill.
 - [`skills/doc-review/SKILL.md`](skills/doc-review/SKILL.md): Holistic code-vs-documentation review and alignment skill.
 - [`skills/agents-maintain/SKILL.md`](skills/agents-maintain/SKILL.md): `AGENTS.md` pruning and historical pitfall archiving skill.
+- [`skills/release-flow/SKILL.md`](skills/release-flow/SKILL.md): General-purpose version release (local test & remote tag + CI check) and cross-device Git sync skill.
 - [`scripts/validate-skills.mjs`](scripts/validate-skills.mjs): Zero-dependency validator for YAML frontmatter, markdown links, and formatting rules.
 - [`scripts/install.sh`](scripts/install.sh): Idempotent installer linking skills into `~/.gemini/skills`, `~/.agents/skills`, `~/.claude/skills`, `~/.cursor/skills`, or `~/.codex/skills`.
 

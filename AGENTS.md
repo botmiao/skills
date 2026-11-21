@@ -10,7 +10,7 @@ Run these from the repository root (`/home/antigravity/botmiao/skills`):
 |---|---|---|
 | Validate skills and links | `node scripts/validate-skills.mjs` | Exits `0` and prints `PASS:` |
 | Dry-run installer | `bash scripts/install.sh --dry-run` | Exits `0` |
-| Install into active environment | `bash scripts/install.sh` | Exits `0` and links the 5 skills into `~/.gemini/skills` and `~/.agents/skills` |
+| Install into active environment | `bash scripts/install.sh` | Exits `0` and links the 6 skills into `~/.gemini/skills` and `~/.agents/skills` |
 
 ## Architecture and module boundaries
 
@@ -19,6 +19,7 @@ Run these from the repository root (`/home/antigravity/botmiao/skills`):
 - [`skills/agy-teamwork/`](skills/agy-teamwork/SKILL.md): Antigravity multi-agent orchestration skill. Frames a structured Milestone Contract with shared-workspace file isolation and runnable verification gates before dispatching to the `teamwork` sentinel (`invoke_subagent(TypeName="teamwork")`).
 - [`skills/doc-review/`](skills/doc-review/SKILL.md): Holistic code-vs-documentation review skill. Audits Database, API, Technical, `README.md`, and Requirement (PRD/Spec) documents against the codebase, repairs factual drift, surfaces requirement gaps for human confirmation, and chains `agents-maintain`.
 - [`skills/agents-maintain/`](skills/agents-maintain/SKILL.md): `AGENTS.md` governance and archiving skill. Audits every rule and pitfall in `AGENTS.md` against current code, moves resolved historical pitfalls into `docs/archive/agents-history.md`, and hardens recurring traps into types, lints, or tests.
+- [`skills/release-flow/`](skills/release-flow/SKILL.md): General-purpose version release and Git sync skill (`release-flow mode1|mode2|mode3`). Supports `mode1` local temporary test releases, `mode2` cross-device code sync without version bumps or tags, and `mode3` formal SemVer remote tag releases with verification gates, `CHANGELOG.md` updates, and CI/CD release-script detection/scaffolding.
 - [`scripts/validate-skills.mjs`](scripts/validate-skills.mjs): structural validator for YAML frontmatter, markdown links, and `/unslop` formatting rules.
 - [`scripts/install.sh`](scripts/install.sh): idempotent installer for Antigravity, Paseo, T3Code, Claude Code, Cursor, and Codex skill directories.
 
